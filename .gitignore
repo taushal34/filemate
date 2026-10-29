@@ -3,3 +3,7 @@ dist/
 .env
 .env.*
 !.env.example
+# Generated audit downloads and sample outputs
+audit/*.zip
+audit/*.patch
+audit/samples/

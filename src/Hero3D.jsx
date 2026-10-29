@@ -1,11 +1,11 @@
 import {useRef,useMemo,useEffect,useState} from 'react'
-import {Canvas,useFrame} from '@react-three/fiber'
+import {Canvas,useFrame,useThree} from '@react-three/fiber'
 import * as THREE from 'three'
 const v=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()
 const cv=()=>({acc:v('--acc')||'#0C969C',glow:v('--glow')||'#22D3C5',frost:v('--frost')||'#D8FFFA',dk:v('--dk')||'#031716',on:v('--onAcc')||'#031716'})
 const W=2.1,H=2.8,N=5,BW=.95,BH=.4
 // Original file stack is intentionally preserved. No globe, sphere or portal orb.
-const PALETTE={acc:'#0C969C',glow:'#22D3C5',frost:'#D8FFFA',dk:'#031716',on:'#031716'}
+function useColors(){const [colors,setColors]=useState(cv);useEffect(()=>{const sync=()=>setColors(cv());window.addEventListener('palettechange',sync);return()=>window.removeEventListener('palettechange',sync)},[]);return colors}
 function rr(w,h,r,d){const s=new THREE.Shape(),x=-w/2,y=-h/2
  s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y)
  const g=new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelSize:.02,bevelThickness:.02,bevelSegments:2,curveSegments:8});g.translate(0,0,-d/2);return g}
@@ -26,20 +26,20 @@ function shadowTex(){const c=document.createElement('canvas');c.width=c.height=1
  r.addColorStop(0,'rgba(0,0,0,.45)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
 
 // A restrained constellation of glints around the existing paper stack.
-function Dust({color}){
- const points=useMemo(()=>{const a=new Float32Array(75*3);for(let i=0;i<75;i++){
+function Dust({color,mobile,reduce}){
+ const points=useMemo(()=>{const a=new Float32Array((mobile?30:75)*3);for(let i=0;i<(mobile?30:75);i++){
   const t=i*2.399963,rad=1.8+((i*37)%41)/41*2.1;
   a[i*3]=Math.cos(t)*rad+.4;a[i*3+1]=Math.sin(t)*rad*.78;
   a[i*3+2]=-1.5+((i*17)%29)/29*2.6;
- }return a},[])
+ }return a},[mobile])
  const mesh=useRef()
- useFrame(({clock})=>{if(mesh.current)mesh.current.rotation.z=Math.sin(clock.elapsedTime*.12)*.045})
+ useFrame(({clock})=>{if(!reduce&&mesh.current)mesh.current.rotation.z=Math.sin(clock.elapsedTime*.12)*.045})
  return <points ref={mesh}><bufferGeometry><bufferAttribute attach="attributes-position" args={[points,3]}/></bufferGeometry><pointsMaterial color={color} size={.035} transparent opacity={.48} sizeAttenuation depthWrite={false}/></points>
 }
 // Thin, non-spherical accent strokes: decorative motion, not an orbiting planet.
-function AccentStrokes({color,boost}){
+function AccentStrokes({color,boost,reduce}){
  const refs=useRef([])
- useFrame(({clock})=>{const t=clock.elapsedTime;refs.current.forEach((m,i)=>{if(!m)return;
+ useFrame(({clock})=>{if(reduce)return;const t=clock.elapsedTime;refs.current.forEach((m,i)=>{if(!m)return;
   m.rotation.z=Math.sin(t*.45+i)*.09;
   m.scale.setScalar(1+Math.sin(t*1.2+i)*.025+boost.current*.075)
  })})
@@ -48,12 +48,12 @@ function AccentStrokes({color,boost}){
   <meshBasicMaterial color={color} transparent opacity={.28-i*.05} depthWrite={false}/>
  </mesh>)}</group>
 }
-function Sparkles({color,boost}){
+function Sparkles({color,boost,reduce}){
  const ref=useRef()
  const coords=useMemo(()=>Array.from({length:12},(_,i)=>{
   const a=i*2.39996,r=1.3+(i%4)*.52;return [Math.cos(a)*r+.55,Math.sin(a)*r*.85,.7+(i%3)*.25]
  }),[])
- useFrame(({clock})=>{if(!ref.current)return;ref.current.children.forEach((m,i)=>{
+ useFrame(({clock})=>{if(reduce||!ref.current)return;ref.current.children.forEach((m,i)=>{
   const q=.65+.35*Math.sin(clock.elapsedTime*1.8+i*1.7);
   m.scale.setScalar((.6+q*.6)*(1+boost.current*1.7))
  })})
@@ -63,24 +63,34 @@ function Sparkles({color,boost}){
  </mesh>)}</group>
 }
 
-function Scene({pulse}){
- const C=useMemo(cv,[]),geo=useMemo(()=>rr(W,H,.16,.07),[]),bgeo=useMemo(()=>rr(BW,BH,.2,.08),[]),front=useMemo(()=>page(C),[C]),shadow=useMemo(shadowTex,[])
+function Scene({pulse,C,mobile,reduce}){
+ const viewport=useThree(s=>s.viewport),invalidate=useThree(s=>s.invalidate)
+ const scale=Math.min(1,viewport.width/5.8,viewport.height/5.4)
+ const geo=useMemo(()=>rr(W,H,.16,.07),[]),bgeo=useMemo(()=>rr(BW,BH,.2,.08),[]),front=useMemo(()=>page(C),[C]),shadow=useMemo(shadowTex,[])
  const back=[C.acc,C.glow,C.frost,C.acc]
- const chips=useMemo(()=>[['PDF',C.acc,C.on,[-1.5,1.55,1.4]],['DOCX',C.frost,C.dk,[-1.2,-1.6,1.5]]].map(([t,bg,fg,p])=>({t,p,map:badge(t,bg,fg)})),[C])
+ const chips=useMemo(()=>[['PDF',C.acc,C.on,[-1.5,1.55,1.4]],['JPG',C.glow,C.dk,[1.15,.55,1.5]],['DOCX',C.frost,C.dk,[-1.2,-1.6,1.5]]].map(([t,bg,fg,p])=>({t,p,map:badge(t,bg,fg)})),[C])
+ useEffect(()=>()=>{front.dispose();chips.forEach(c=>c.map.dispose())},[front,chips])
+ useEffect(()=>()=>{geo.dispose();bgeo.dispose();shadow.dispose()},[geo,bgeo,shadow])
+ useEffect(()=>{invalidate()},[C,scale,reduce,pulse,invalidate])
  const root=useRef(),sh=useRef([]),ch=useRef([]),sp=useRef(1.8),boost=useRef(0),last=useRef(pulse)
  useFrame(({pointer,clock},dt)=>{
+  if(reduce)return
+  dt=Math.min(dt,.05)
   if(last.current!==pulse){last.current=pulse;boost.current=1}
   boost.current=Math.max(0,boost.current-dt*.55);const t=clock.elapsedTime
   sp.current+=((1+boost.current*.9)-sp.current)*Math.min(1,dt*3);const s=sp.current,r=root.current
   r.rotation.y+=(pointer.x*.42+Math.sin(t*.4)*.08-r.rotation.y)*Math.min(1,dt*4);r.rotation.x+=(-pointer.y*.23-r.rotation.x)*Math.min(1,dt*4);r.position.y=Math.sin(t*.55)*.065
   sh.current.forEach((m,i)=>{const d=N-1-i;m.position.set(-d*.42*s,d*.1*s+Math.sin(t*.9+i)*.04,i*.28);m.rotation.z=d*.07*s;m.rotation.y=Math.sin(t*.5+i*.8)*.028+boost.current*.035})
   ch.current.forEach((m,i)=>{m.position.y=chips[i].p[1]+Math.sin(t*.8+i*2)*.1;m.rotation.z=Math.sin(t*.6+i)*.05})})
- return <group ref={root}><Dust color={C.glow}/><AccentStrokes color={C.glow} boost={boost}/><Sparkles color={C.frost} boost={boost}/><group position={[.8,0,0]}>
-  {Array.from({length:N},(_,i)=><mesh key={i} ref={e=>sh.current[i]=e} geometry={geo}>{i===N-1?<meshStandardMaterial map={front} roughness={.5}/>:<meshStandardMaterial color={back[i]} roughness={.45}/>}</mesh>)}
+ return <group scale={scale}><group ref={root}><Dust color={C.glow} mobile={mobile} reduce={reduce}/><AccentStrokes color={C.glow} boost={boost} reduce={reduce}/><Sparkles color={C.frost} boost={boost} reduce={reduce}/><group position={[.8,0,0]}>
+  {Array.from({length:N},(_,i)=><mesh key={i} ref={e=>sh.current[i]=e} geometry={geo} position={[-(N-1-i)*.42,(N-1-i)*.1,i*.28]} rotation={[0,0,(N-1-i)*.07]}>{i===N-1?<meshStandardMaterial map={front} roughness={.5}/>:<meshStandardMaterial color={back[i]} roughness={.45}/>}</mesh>)}
   {chips.map((c,i)=><mesh key={c.t} ref={e=>ch.current[i]=e} geometry={bgeo} position={c.p}><meshStandardMaterial map={c.map} roughness={.4}/></mesh>)}
-  <mesh position={[0,-2.2,.5]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[6,3.4]}/><meshBasicMaterial map={shadow} transparent depthWrite={false}/></mesh></group></group>}
-export default function Hero3D({pulse}){const C=useMemo(cv,[]),[on,setOn]=useState(true),[reduce,setReduce]=useState(false),el=useRef()
- useEffect(()=>{const o=new IntersectionObserver(([e])=>setOn(e.isIntersecting));if(el.current)o.observe(el.current);return()=>o.disconnect()},[])
- useEffect(()=>{const q=window.matchMedia('(prefers-reduced-motion: reduce)');const sync=()=>setReduce(q.matches);sync();q.addEventListener?.('change',sync);return()=>q.removeEventListener?.('change',sync)},[])
- return <div ref={el} className="absolute inset-0"><Canvas flat dpr={[1,1.5]} frameloop={on&&!reduce?'always':'demand'} camera={{position:[0,0,8.5],fov:36}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}}>
-  <ambientLight intensity={.7}/><directionalLight position={[3,4,5]} intensity={1.3} color={C.frost}/><pointLight position={[-4,-2,3]} intensity={25} color={C.glow}/><Scene pulse={pulse}/></Canvas></div>}
+  <mesh position={[0,-2.2,.5]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[6,3.4]}/><meshBasicMaterial map={shadow} transparent depthWrite={false}/></mesh></group></group></group>}
+export default function Hero3D({pulse,fallback}){
+ const C=useColors(),[on,setOn]=useState(true),[reduce,setReduce]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches),[mobile,setMobile]=useState(()=>innerWidth<768),[failed,setFailed]=useState(false),[canvas,setCanvas]=useState(null),el=useRef()
+ useEffect(()=>{if(!window.IntersectionObserver)return;const o=new IntersectionObserver(([e])=>setOn(e.isIntersecting));if(el.current)o.observe(el.current);return()=>o.disconnect()},[])
+ useEffect(()=>{const q=matchMedia('(prefers-reduced-motion: reduce)'),size=matchMedia('(max-width: 767px)');const sync=()=>{setReduce(q.matches);setMobile(size.matches)};q.addEventListener('change',sync);size.addEventListener('change',sync);return()=>{q.removeEventListener('change',sync);size.removeEventListener('change',sync)}},[])
+ useEffect(()=>{if(!canvas)return;const lost=e=>{e.preventDefault();setFailed(true)};canvas.addEventListener('webglcontextlost',lost);return()=>canvas.removeEventListener('webglcontextlost',lost)},[canvas])
+ return <div ref={el} className="absolute inset-0">{failed?fallback:<Canvas flat fallback={fallback} dpr={mobile?1:[1,1.5]} frameloop={on&&!reduce?'always':'demand'} camera={{position:[0,0,8.5],fov:36}} gl={{antialias:true,alpha:true,powerPreference:'low-power'}} onCreated={({gl})=>setCanvas(gl.domElement)}>
+  <ambientLight intensity={.7}/><directionalLight position={[3,4,5]} intensity={1.3} color={C.frost}/><pointLight position={[-4,-2,3]} intensity={25} color={C.glow}/><Scene pulse={pulse} C={C} mobile={mobile} reduce={reduce}/></Canvas>}</div>
+}
