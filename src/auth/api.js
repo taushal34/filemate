@@ -28,6 +28,10 @@ export function createAuthApi(client, origin) {
       if (!/^[0-9]{6,10}$/.test(token.trim())) throw new Error('Invalid recovery code');
       return checked(client.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'recovery' }));
     },
+    verifySignupOtp(email, token) {
+      if (!/^[0-9]{6,10}$/.test(token.trim())) throw new Error('Invalid verification code');
+      return checked(client.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'signup' }));
+    },
     changePassword(password) {
       const invalid = passwordError(password); if (invalid) throw new Error(invalid);
       return checked(client.auth.updateUser({ password }));

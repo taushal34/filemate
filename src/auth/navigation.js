@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-export const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/forgot-password', '/auth/reset-password', '/auth/callback', '/account'];
+export const AUTH_PATHS = ['/auth/login', '/auth/signup', '/auth/verify-email', '/auth/forgot-password', '/auth/reset-password', '/auth/callback', '/account'];
 export function navigate(path, replace = false) {
   if (!AUTH_PATHS.includes(path) && path !== '/') path = '/';
   window.history[replace ? 'replaceState' : 'pushState']({}, '', path);

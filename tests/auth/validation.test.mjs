@@ -68,3 +68,9 @@ test('recovery OTP verifies email and fixed recovery type, rejecting malformed c
   assert.deepEqual(calls[0],['verifyOtp',{email:'a@example.com',token:'12345678',type:'recovery'}]);
   assert.match(authError({code:'otp_expired'}),/code is invalid or expired/);
 });
+
+test('signup email OTP verifies only the supplied email with signup type', async () => {
+  const {api,calls}=fake();assert.throws(()=>api.verifySignupOtp('a@example.com','1234'));assert.equal(calls.length,0);
+  await api.verifySignupOtp(' a@example.com ',' 12345678 ');
+  assert.deepEqual(calls[0],['verifyOtp',{email:'a@example.com',token:'12345678',type:'signup'}]);
+});

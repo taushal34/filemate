@@ -1,5 +1,5 @@
 {
-  "checks": 42,
+  "checks": 45,
   "passed": [
     "Guest cannot view account profile",
     "Invalid login explains missing user or incorrect password",
@@ -21,6 +21,9 @@
     "Protected account stays protected after logout",
     "Unconfirmed signup asks for verification, not a fake signed-in state",
     "Signup stores preferred username only",
+    "Signup opens OTP field and clears password",
+    "Wrong signup code does not authenticate",
+    "Standalone signup OTP verifies without original signup browser state",
     "Resend verification flow reaches Auth",
     "Password reset uses non-enumerating success message",
     "Guest cannot use reset-password form",
