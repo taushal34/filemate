@@ -102,6 +102,10 @@ function AccountPage() {
     <div className="mt-7 flex flex-wrap items-center gap-4 border-t border-line pt-5 text-sm"><RouteLink to="/auth/forgot-password" className="text-accent underline">Reset password by email</RouteLink><button disabled={action.busy} onClick={() => action.run(auth.logout)} className="min-h-11 rounded-full border border-line px-5 py-2">Sign out</button></div>
   </>;
 }
+function RecoveryConfirmation() {
+  const auth = useAuth(), action = useAction();
+  return <><p className="mb-5 text-mute">Continue to verify your reset email and choose a new password.</p><button className={actionClass} disabled={action.busy} onClick={() => action.run(auth.confirmRecovery)}>{action.busy ? 'Verifying…' : 'Continue to reset password'}</button><Feedback action={action}/></>;
+}
 export default function AuthScreen({ path }) {
   const auth = useAuth();
   const heading = useRef(null);
@@ -114,6 +118,6 @@ export default function AuthScreen({ path }) {
     <h1 ref={heading} tabIndex={-1} className="mb-7 font-display text-3xl font-bold tracking-tight sm:text-4xl">{titles[mode]}</h1>
     {!auth.configured && <p role="status" className="mb-6 rounded-xl border border-line p-4 text-sm text-mute">{auth.configMessage}</p>}
     {auth.error && <p role="alert" className="mb-6 text-sm text-accent">{auth.error}</p>}
-    {auth.status === 'loading' || (mode === 'callback' && auth.configured) ? <p role="status">Checking your session…</p> : protectedPage && !auth.user ? <><p className="text-mute">{mode === 'reset-password' ? 'Open a valid reset link from your email in the same browser, or request a new one.' : 'Sign in to view your private account. Your file tools are still free to use.'}</p><RouteLink to={mode === 'reset-password' ? '/auth/forgot-password' : '/auth/login'} className="mt-5 inline-flex min-h-11 items-center rounded-full border border-line px-5">{mode === 'reset-password' ? 'Request reset link' : 'Sign in'}</RouteLink></> : mode === 'account' ? <AccountPage/> : (mode === 'login' || mode === 'signup') && auth.user ? <><p>You are already signed in.</p><RouteLink to="/account" className="mt-5 inline-block text-accent underline">Go to your account</RouteLink></> : mode === 'callback' ? <RouteLink to="/" className="text-accent underline">Return to file tools</RouteLink> : <AuthForm key={mode} mode={mode}/>}
+    {mode === 'callback' && auth.pendingRecovery ? <RecoveryConfirmation/> : auth.status === 'loading' || (mode === 'callback' && auth.configured) ? <p role="status">Checking your session…</p> : protectedPage && !auth.user ? <><p className="text-mute">{mode === 'reset-password' ? 'Open a valid reset link from your email in the same browser, or request a new one.' : 'Sign in to view your private account. Your file tools are still free to use.'}</p><RouteLink to={mode === 'reset-password' ? '/auth/forgot-password' : '/auth/login'} className="mt-5 inline-flex min-h-11 items-center rounded-full border border-line px-5">{mode === 'reset-password' ? 'Request reset link' : 'Sign in'}</RouteLink></> : mode === 'account' ? <AccountPage/> : (mode === 'login' || mode === 'signup') && auth.user ? <><p>You are already signed in.</p><RouteLink to="/account" className="mt-5 inline-block text-accent underline">Go to your account</RouteLink></> : mode === 'callback' ? <RouteLink to="/" className="text-accent underline">Return to file tools</RouteLink> : <AuthForm key={mode} mode={mode}/>}
   </section>;
 }

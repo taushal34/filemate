@@ -20,6 +20,7 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
       if(request.method()==='OPTIONS')return send({});
       if(url.pathname.endsWith('/authorize'))return route.fulfill({contentType:'text/html',body:'<h1>Simulated Google consent</h1>'});
       if(url.pathname.endsWith('/token'))return rejectLogin?send({code:'invalid_credentials',msg:'Invalid credentials'},400):send(session());
+      if(url.pathname.endsWith('/verify'))return body.token_hash==='expired-recovery-token'?send({code:'otp_expired',msg:'Expired'},403):send(session());
       if(url.pathname.endsWith('/signup'))return send(user);
       if(url.pathname.endsWith('/recover')||url.pathname.endsWith('/resend'))return send({});
       if(url.pathname.endsWith('/logout'))return rejectLogout?send({message:'network failure'},500):send({});
@@ -73,6 +74,17 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     check('Callback code removed from URL',!page.url().includes('fake-code'));
     await page.getByLabel('New password',{exact:true}).fill('another-long-password');await page.getByLabel('Confirm new password').fill('another-long-password');await page.getByRole('button',{name:'Save new password and sign out'}).click();await page.getByRole('heading',{name:'Welcome back.'}).waitFor();
     check('Recovery updates password through Auth and signs out',requests.some(r=>r.path.endsWith('/user')&&r.method==='PUT'&&r.body.password==='another-long-password'));
+    const beforeVerification=requests.filter(r=>r.path.endsWith('/verify')).length;
+    await page.goto(base+'/auth/callback?token_hash=valid-recovery-token&type=recovery',{waitUntil:'domcontentloaded'});
+    await page.getByRole('button',{name:'Continue to reset password'}).waitFor();
+    check('Recovery landing does not consume token on prefetch',requests.filter(r=>r.path.endsWith('/verify')).length===beforeVerification);
+    check('Recovery token removed from address bar',!page.url().includes('valid-recovery-token'));
+    await page.getByRole('button',{name:'Continue to reset password'}).click();await page.getByLabel('New password',{exact:true}).waitFor();
+    check('Explicit recovery confirmation opens password form without PKCE storage',requests.some(r=>r.path.endsWith('/verify')&&r.body.token_hash==='valid-recovery-token'&&r.body.type==='recovery'));
+    await page.goto(base+'/auth/callback?token_hash=expired-recovery-token&type=recovery',{waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'Continue to reset password'}).click();
+    await page.getByRole('alert').filter({hasText:'invalid or expired'}).waitFor();
+    check('Expired recovery token offers fresh reset request',new URL(page.url()).pathname==='/auth/forgot-password');
+    await page.goto(base+'/account',{waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.getByRole('heading',{name:'Welcome back.'}).waitFor();
     await page.goto(base+'/auth/callback?error=access_denied&error_description=private-google-data',{waitUntil:'domcontentloaded'});await page.getByRole('alert').filter({hasText:'invalid or expired'}).waitFor();check('OAuth denial is safe and strips provider details',!page.url().includes('private-google-data')&&!(await page.locator('body').innerText()).includes('private-google-data'));
     await page.getByRole('link',{name:'Back to file tools',exact:false}).click();await page.locator('canvas').waitFor();check('Guest tools and original hero remain available',await page.getByRole('heading',{name:'Your files, handled quietly.'}).isVisible());
     await page.goto(base+'/auth/login',{waitUntil:'domcontentloaded'});

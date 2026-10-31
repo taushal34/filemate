@@ -23,6 +23,7 @@ export function createAuthApi(client, origin) {
     forgot: email => checked(client.auth.resetPasswordForEmail(email.trim(), { redirectTo: callback + '?flow=recovery' })),
     resend: email => checked(client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: callback } })),
     exchange: code => checked(client.auth.exchangeCodeForSession(code)),
+    verifyRecovery: tokenHash => checked(client.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })),
     changePassword(password) {
       const invalid = passwordError(password); if (invalid) throw new Error(invalid);
       return checked(client.auth.updateUser({ password }));

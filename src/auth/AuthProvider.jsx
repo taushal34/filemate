@@ -14,6 +14,8 @@ export function AuthProvider({ children, api = defaultApi, config = authConfig }
   const [error, setError] = useState('');
   const [profileError, setProfileError] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
+  const [pendingRecovery, setPendingRecovery] = useState(null);
+  const recoveryLock = useRef(false);
   const generation = useRef(0);
   const activeUser = useRef(null);
   const alive = useRef(true);
@@ -66,8 +68,15 @@ export function AuthProvider({ children, api = defaultApi, config = authConfig }
         const params = new URLSearchParams(window.location.search);
         const recovery = params.get('flow') === 'recovery';
         const code = params.get('code');
+        const recoveryHash = params.get('token_hash');
         // Remove codes and provider errors from history before rendering or further navigation.
         window.history.replaceState({}, '', '/auth/callback');
+        if (!params.has('error') && params.get('type') === 'recovery' && /^[A-Za-z0-9_-]{6,512}$/.test(recoveryHash || '')) {
+          // Do not consume a one-use email token on page load: mail scanners can
+          // prefetch links. Keep it in memory until the user explicitly continues.
+          setPendingRecovery(recoveryHash); setStatus('guest');
+          return;
+        }
         if (params.has('error') || !code) {
           if (!disposed) { setError('This sign-in link is invalid or expired. Start again in the same browser.'); setStatus('guest'); navigate('/auth/login', true); }
           return;
@@ -115,7 +124,22 @@ export function AuthProvider({ children, api = defaultApi, config = authConfig }
     setUser(null); setProfile(null); setProfileError(''); setProfileLoading(false); setStatus('guest');
     navigate('/auth/login', true);
   };
+  const confirmRecovery = async () => {
+    if (!pendingRecovery || recoveryLock.current) return;
+    recoveryLock.current = true;
+    try {
+      await api.verifyRecovery(pendingRecovery);
+      setPendingRecovery(null);
+      navigate('/auth/reset-password', true);
+    } catch (e) {
+      setPendingRecovery(null);
+      setError('This reset link is invalid or expired. Request a new reset email.');
+      navigate('/auth/forgot-password', true);
+      throw e;
+    } finally { recoveryLock.current = false; }
+  };
   return <AuthContext.Provider value={{ api, configured: !!api, configMessage: config.message, user, profile, status, error,
-    clearError: () => setError(''), profileError, profileLoading, reloadProfile, saveProfile, logout }}>{children}</AuthContext.Provider>;
+    clearError: () => setError(''), profileError, profileLoading, reloadProfile, saveProfile, logout,
+    pendingRecovery: !!pendingRecovery, confirmRecovery }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() { return useContext(AuthContext); }

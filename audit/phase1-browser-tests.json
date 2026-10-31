@@ -1,5 +1,5 @@
 {
-  "checks": 34,
+  "checks": 38,
   "passed": [
     "Guest cannot view account profile",
     "Invalid login has useful error",
@@ -28,6 +28,10 @@
     "PKCE recovery callback exchanges code",
     "Callback code removed from URL",
     "Recovery updates password through Auth and signs out",
+    "Recovery landing does not consume token on prefetch",
+    "Recovery token removed from address bar",
+    "Explicit recovery confirmation opens password form without PKCE storage",
+    "Expired recovery token offers fresh reset request",
     "OAuth denial is safe and strips provider details",
     "Guest tools and original hero remain available",
     "Google UI requests identity-only authorization",
