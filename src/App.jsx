@@ -20,6 +20,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import PalettePanel from './PalettePanel';
+import AuthScreen, { AccountNav } from './auth/AuthScreen';
+import { AUTH_PATHS, useRoute, navigate } from './auth/navigation';
 import { TOOLS, CATS, stats, CASES, fmt, validate } from './tools';
 
 const Hero3D = lazy(() => import('./Hero3D'));
@@ -113,9 +115,16 @@ const Burst = () => (
   </div>
 );
 
+function homeAnchor(event, target) {
+  if (window.location.pathname === '/' || event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault(); navigate('/');
+  requestAnimationFrame(() => document.querySelector(target)?.scrollIntoView());
+}
+
 const Mark = () => (
   <a
-    href="#top"
+    href="/#top"
+    onClick={event => homeAnchor(event, '#top')}
     aria-label="FileMate home"
     className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-fg"
   >
@@ -132,24 +141,25 @@ const Mark = () => (
 function Nav({ dark, toggle, setCat, onPal }) {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-3 sm:px-5">
         <Mark />
-        <nav aria-label="Categories" className="hidden gap-6 text-sm md:flex">
+        <nav aria-label="Categories" className="hidden gap-6 text-sm lg:flex">
           {CATS.slice(1).map(c => (
             <a
               key={c}
-              href="#tools"
-              onClick={() => setCat(c)}
+              href="/#tools"
+              onClick={event => { setCat(c); homeAnchor(event, '#tools'); }}
               className="text-mute hover:text-accent font-medium transition-colors"
             >
               {c}
             </a>
           ))}
-          <a href="#privacy" className="text-mute hover:text-accent font-medium transition-colors">
+          <a href="/#privacy" onClick={event => homeAnchor(event, '#privacy')} className="text-mute hover:text-accent font-medium transition-colors">
             Privacy
           </a>
         </nav>
         <div className="flex items-center gap-2">
+          <AccountNav />
           <PalettePanel onChange={onPal} />
           <button
             onClick={toggle}
@@ -895,6 +905,8 @@ const Sections = () => (
 );
 
 export default function App() {
+  const path = useRoute();
+  const accountRoute = AUTH_PATHS.includes(path);
   const [dark, setDark] = useState(() => {
     if (typeof window === 'undefined') return true;
     try {
@@ -961,6 +973,7 @@ export default function App() {
         }}
       />
       <main>
+        {accountRoute ? <AuthScreen path={path}/> : <>
         {/* DO NOT pass key={ver} so Three.js Canvas is NOT needlessly unmounted */}
         <Hero pulse={pulse} />
         <Drop files={files} onFiles={onFiles} />
@@ -974,6 +987,7 @@ export default function App() {
           }}
         />
         <Sections />
+        </>}
       </main>
 
       <footer className="border-t border-line px-5 py-10">
