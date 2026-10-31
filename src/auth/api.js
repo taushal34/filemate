@@ -24,6 +24,10 @@ export function createAuthApi(client, origin) {
     resend: email => checked(client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: callback } })),
     exchange: code => checked(client.auth.exchangeCodeForSession(code)),
     verifyRecovery: tokenHash => checked(client.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })),
+    verifyRecoveryOtp(email, token) {
+      if (!/^[0-9]{6,10}$/.test(token.trim())) throw new Error('Invalid recovery code');
+      return checked(client.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'recovery' }));
+    },
     changePassword(password) {
       const invalid = passwordError(password); if (invalid) throw new Error(invalid);
       return checked(client.auth.updateUser({ password }));

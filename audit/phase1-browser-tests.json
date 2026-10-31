@@ -1,5 +1,5 @@
 {
-  "checks": 38,
+  "checks": 42,
   "passed": [
     "Guest cannot view account profile",
     "Invalid login has useful error",
@@ -38,6 +38,10 @@
     "Google callback opens the verified account",
     "Logout clears protected profile in another tab",
     "Unverified stored session never reveals private profile",
+    "Recovery request opens code entry without authenticating",
+    "Wrong recovery OTP does not open password form",
+    "Recovery OTP opens password form without browser verifier",
+    "OTP recovery saves new password and signs out",
     "No browser runtime errors"
   ],
   "errors": [],

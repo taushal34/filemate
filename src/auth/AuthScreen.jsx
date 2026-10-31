@@ -38,6 +38,7 @@ function Field({ label, id, ...props }) {
 function AuthForm({ mode }) {
   const auth = useAuth(), action = useAction();
   const [email, setEmail] = useState(auth.user?.email || ''), [password, setPassword] = useState(''), [confirm, setConfirm] = useState(''), [username, setUsername] = useState('');
+  const [codeRequested, setCodeRequested] = useState(false), [otp, setOtp] = useState('');
   const signup = mode === 'signup', forgot = mode === 'forgot-password', reset = mode === 'reset-password';
   const disabled = action.busy || !auth.configured;
   const submit = event => {
@@ -45,7 +46,10 @@ function AuthForm({ mode }) {
     const invalid = signup ? usernameError(username) || passwordError(password) : reset ? passwordError(password) || (password !== confirm ? 'Passwords do not match.' : '') : '';
     if (invalid) { action.setError(invalid); return; }
     auth.clearError();
-    if (forgot) return action.run(() => auth.api.forgot(email), 'If this address can receive account emails, a reset link will arrive shortly. Open it in this same browser.');
+    if (forgot) return action.run(async () => {
+      if (!codeRequested) { await auth.api.forgot(email); setCodeRequested(true); }
+      else { await auth.api.verifyRecoveryOtp(email, otp); setOtp(''); navigate('/auth/reset-password', true); }
+    }, codeRequested ? '' : 'If this address can receive account emails, a reset code will arrive shortly. Enter it here; you can read the email on another device.');
     if (reset) return action.run(async () => {
       await auth.api.changePassword(password); setPassword(''); setConfirm('');
       await auth.logout();
@@ -63,15 +67,17 @@ function AuthForm({ mode }) {
     {!forgot && !reset && <button className="mb-6 min-h-11 w-full rounded-full border border-line px-4 py-3 font-medium hover:border-fg disabled:opacity-50" disabled={disabled} onClick={() => action.run(() => auth.api.google())}>Continue with Google</button>}
     <form onSubmit={submit} className="space-y-5">
       <fieldset disabled={disabled} className="space-y-5">
-        {!reset && <Field id="auth-email" label="Email" type="email" required maxLength={254} autoComplete="email" value={email} onChange={e => setEmail(e.target.value)}/>}
+        {!reset && <Field id="auth-email" label="Email" type="email" required maxLength={254} autoComplete="email" readOnly={forgot && codeRequested} value={email} onChange={e => setEmail(e.target.value)}/>}
+        {forgot && codeRequested && <><Field id="auth-recovery-code" label="Email verification code" type="text" required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,10}" minLength={6} maxLength={10} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}/><p className="text-xs text-mute">Enter the code from your newest reset email. Requesting another code invalidates older codes.</p></>}
         {signup && <><Field id="auth-username" label="Preferred FileMate username" required minLength={3} maxLength={24} autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={e => setUsername(e.target.value)}/><p className="text-xs text-mute">3–24 letters, numbers or underscores; start with a letter. Your name is claimed after verification, so this is not a reservation.</p></>}
         {!forgot && <Field id="auth-password" label={reset ? 'New password' : 'Password'} type="password" required minLength={signup || reset ? 12 : 1} maxLength={128} autoComplete={signup || reset ? 'new-password' : 'current-password'} value={password} onChange={e => setPassword(e.target.value)}/>}
         {reset && <Field id="auth-confirm" label="Confirm new password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)}/>}
         {(signup || reset) && <p className="text-xs text-mute">Use a unique password with 12–128 characters.</p>}
-        <button type="submit" className={actionClass}>{action.busy ? 'Please wait…' : signup ? 'Create account' : forgot ? 'Send reset link' : reset ? 'Save new password and sign out' : 'Sign in'}</button>
+        <button type="submit" className={actionClass}>{action.busy ? 'Please wait…' : signup ? 'Create account' : forgot ? codeRequested ? 'Verify code' : 'Send reset code' : reset ? 'Save new password and sign out' : 'Sign in'}</button>
       </fieldset>
     </form>
     <Feedback action={action}/>
+    {forgot && codeRequested && <button disabled={disabled} className="mt-4 min-h-11 text-sm text-accent underline disabled:opacity-50" onClick={() => { setCodeRequested(false); setOtp(''); }}>Use another email or request a new code</button>}
     {mode === 'login' && <div className="mt-5 flex flex-wrap gap-4 text-sm text-accent"><RouteLink to="/auth/forgot-password">Forgot password?</RouteLink><button disabled={disabled || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)} className="disabled:opacity-50" onClick={() => action.run(() => auth.api.resend(email), 'If verification is needed, a new email will arrive shortly. Open it in this same browser.')}>Resend verification email</button></div>}
     <div className="mt-6 border-t border-line pt-5 text-sm text-mute">{signup ? <>Already have an account? <RouteLink to="/auth/login" className="text-accent underline">Sign in</RouteLink></> : !reset && <>New to FileMate? <RouteLink to="/auth/signup" className="text-accent underline">Create an account</RouteLink></>}</div>
   </>;

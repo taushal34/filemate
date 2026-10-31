@@ -28,6 +28,7 @@ export function usernameError(value) {
 }
 export function passwordError(value) { return typeof value === 'string' && value.length >= 12 && value.length <= 128 ? '' : 'Use a password between 12 and 128 characters.'; }
 export function authError(error) {
+  if (error?.code === 'otp_expired' || error?.code === 'otp_disabled') return 'This code is invalid or expired. Enter the newest code or request a new one.';
   if (error?.code === '23505') return 'That username is already taken. Please choose another one.';
   if (error?.code === 'email_not_confirmed') return 'Verify your email before signing in. Open the verification link in this same browser.';
   if (error?.status === 429 || error?.code === 'over_email_send_rate_limit') return 'Too many attempts. Please wait before trying again.';

@@ -58,3 +58,12 @@ test('SDK errors propagate for precise UI handling', async () => {
   const api=createAuthApi({auth:{signInWithPassword:async()=>({data:null,error})}},'https://filemate.example');
   await assert.rejects(api.login('a@example.com','bad'),e=>e===error);
 });
+
+test('recovery OTP verifies email and fixed recovery type, rejecting malformed codes locally', async () => {
+  const {api,calls}=fake();
+  for (const code of ['123','12345678901','abcdef','123 456']) assert.throws(()=>api.verifyRecoveryOtp('a@example.com',code));
+  assert.equal(calls.length,0);
+  await api.verifyRecoveryOtp(' a@example.com ',' 12345678 ');
+  assert.deepEqual(calls[0],['verifyOtp',{email:'a@example.com',token:'12345678',type:'recovery'}]);
+  assert.match(authError({code:'otp_expired'}),/code is invalid or expired/);
+});

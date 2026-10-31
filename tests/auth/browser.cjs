@@ -20,7 +20,7 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
       if(request.method()==='OPTIONS')return send({});
       if(url.pathname.endsWith('/authorize'))return route.fulfill({contentType:'text/html',body:'<h1>Simulated Google consent</h1>'});
       if(url.pathname.endsWith('/token'))return rejectLogin?send({code:'invalid_credentials',msg:'Invalid credentials'},400):send(session());
-      if(url.pathname.endsWith('/verify'))return body.token_hash==='expired-recovery-token'?send({code:'otp_expired',msg:'Expired'},403):send(session());
+      if(url.pathname.endsWith('/verify'))return (body.token_hash==='expired-recovery-token'||body.token==='00000000')?send({code:'otp_expired',msg:'Expired'},403):send(session());
       if(url.pathname.endsWith('/signup'))return send(user);
       if(url.pathname.endsWith('/recover')||url.pathname.endsWith('/resend'))return send({});
       if(url.pathname.endsWith('/logout'))return rejectLogout?send({message:'network failure'},500):send({});
@@ -56,7 +56,7 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     await page.screenshot({path:'audit/phase1-account.png'});
     await page.getByRole('link',{name:'Reset password by email'}).click();
     check('Signed-in users can request password recovery',await page.getByLabel('Email',{exact:true}).inputValue()==='alice@example.com');
-    await page.getByRole('button',{name:'Send reset link'}).click();await page.getByRole('status').filter({hasText:'If this address'}).waitFor();
+    await page.getByRole('button',{name:'Send reset code'}).click();await page.getByRole('status').filter({hasText:'If this address'}).waitFor();
     check('Signed-in recovery request reaches Auth',requests.some(r=>r.path.endsWith('/recover')));
     await page.goto(base+'/account',{waitUntil:'domcontentloaded'});await page.getByText('Signed in as alice@example.com').waitFor();
     await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.getByRole('heading',{name:'Welcome back.'}).waitFor();check('Logout returns to login',new URL(page.url()).pathname==='/auth/login');
@@ -66,7 +66,7 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     check('Unconfirmed signup asks for verification, not a fake signed-in state',await page.locator('#profile-username').count()===0);
     check('Signup stores preferred username only',requests.find(r=>r.path.endsWith('/signup')).body.data.preferred_username==='alice');
     await page.goto(base+'/auth/login',{waitUntil:'domcontentloaded'});await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByRole('button',{name:'Resend verification email'}).click();await page.getByRole('status').filter({hasText:'new email'}).waitFor();check('Resend verification flow reaches Auth',requests.some(r=>r.path.endsWith('/resend')));
-    await page.goto(base+'/auth/forgot-password',{waitUntil:'domcontentloaded'});await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByRole('button',{name:'Send reset link'}).click();await page.getByRole('status').filter({hasText:'If this address'}).waitFor();check('Password reset uses non-enumerating success message',requests.some(r=>r.path.endsWith('/recover')));
+    await page.goto(base+'/auth/forgot-password',{waitUntil:'domcontentloaded'});await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByRole('button',{name:'Send reset code'}).click();await page.getByRole('status').filter({hasText:'If this address'}).waitFor();check('Password reset uses non-enumerating success message',requests.some(r=>r.path.endsWith('/recover')));
     await page.goto(base+'/auth/reset-password',{waitUntil:'domcontentloaded'});await page.getByRole('link',{name:'Request reset link'}).waitFor();check('Guest cannot use reset-password form',await page.locator('#auth-confirm').count()===0);
     await page.goto(base+'/auth/callback?code=fake-code',{waitUntil:'domcontentloaded'});await page.getByLabel('New password',{exact:true}).waitFor();
     check('Recovery without custom query flag stays on password form',new URL(page.url()).pathname==='/auth/reset-password');
@@ -99,6 +99,15 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByLabel('Password',{exact:true}).fill('long-test-password');await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByText('Signed in as alice@example.com').waitFor();
     invalidSession=true;await page.reload();await page.getByText('Sign in to view your private account.',{exact:false}).waitFor();
     check('Unverified stored session never reveals private profile',await page.locator('#profile-username').count()===0);invalidSession=false;
+    await page.goto(base+'/auth/forgot-password',{waitUntil:'domcontentloaded'});await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByRole('button',{name:'Send reset code'}).click();await page.getByLabel('Email verification code').waitFor();
+    check('Recovery request opens code entry without authenticating',await page.locator('#auth-confirm').count()===0);
+    await page.evaluate(()=>{for(const key of Object.keys(localStorage)){if(key.includes('code-verifier'))localStorage.removeItem(key);}});
+    await page.getByLabel('Email verification code').fill('00000000');await page.getByRole('button',{name:'Verify code',exact:true}).click();await page.getByRole('alert').filter({hasText:'code is invalid or expired'}).waitFor();
+    check('Wrong recovery OTP does not open password form',await page.locator('#auth-confirm').count()===0);
+    await page.getByLabel('Email verification code').fill('12345678');await page.getByRole('button',{name:'Verify code',exact:true}).click();await page.getByLabel('New password',{exact:true}).waitFor();
+    check('Recovery OTP opens password form without browser verifier',requests.some(r=>r.path.endsWith('/verify')&&r.body.email==='alice@example.com'&&r.body.token==='12345678'&&r.body.type==='recovery'));
+    await page.getByLabel('New password',{exact:true}).fill('otp-new-password');await page.getByLabel('Confirm new password').fill('otp-new-password');await page.getByRole('button',{name:'Save new password and sign out'}).click();await page.getByRole('heading',{name:'Welcome back.'}).waitFor();
+    check('OTP recovery saves new password and signs out',requests.some(r=>r.path.endsWith('/user')&&r.body?.password==='otp-new-password'));
     check('No browser runtime errors',errors.length===0);
     await fs.writeFile('audit/phase1-browser-tests.json',JSON.stringify({checks:checks.length,passed:checks,errors,backend:'Mocked Supabase HTTP responses; real SDK and UI; not live OAuth or email delivery'},null,2)+'\n');console.log('ALL',checks.length,'AUTH BROWSER CHECKS PASSED');
   } finally {await browser?.close();await server.close();}
