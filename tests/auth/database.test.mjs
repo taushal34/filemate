@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 const alice='11111111-1111-4111-8111-111111111111',bob='22222222-2222-4222-8222-222222222222';
 
@@ -13,7 +13,10 @@ test('PostgreSQL migration, grants, RLS, private profile isolation and atomic us
       grant usage on schema auth, public to anon,authenticated;
       grant execute on function auth.uid() to anon,authenticated;
       insert into auth.users values ('${alice}');`);
-    await db.exec(await readFile(new URL('../../supabase/migrations/202610310001_profiles.sql',import.meta.url),'utf8'));
+    const migrationDir = new URL('../../supabase/migrations/', import.meta.url);
+    for (const name of (await readdir(migrationDir)).filter(x => x.endsWith('.sql')).sort()) {
+      await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
+    }
     const query=(sql,args=[])=>db.query(sql,args);
     const as=async(role,id='')=>{await db.exec('reset role');await query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role '+role);};
     await t.test('existing users are backfilled and future Auth users receive one blank private profile',async()=>{
@@ -54,6 +57,11 @@ test('PostgreSQL migration, grants, RLS, private profile isolation and atomic us
       await as('postgres');
       const attempts=await Promise.allSettled([query("update public.profiles set username='contested' where id=$1",[alice]),query("update public.profiles set username='contested' where id=$1",[bob])]);
       assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);assert.equal(attempts.find(x=>x.status==='rejected').reason.code,'23505');
+    });
+    await t.test('public username API is invoker-only and privileged helper has a fixed empty search path',async()=>{
+      await as('postgres');const rows=(await query("select n.nspname,p.prosecdef,p.proconfig from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname='lookup_username' order by n.nspname")).rows;
+      assert.equal(rows.find(x=>x.nspname==='public').prosecdef,false);
+      const helper=rows.find(x=>x.nspname==='filemate_private');assert.equal(helper.prosecdef,true);assert.ok(helper.proconfig.some(x=>x.startsWith('search_path=')));
     });
     await t.test('Auth user deletion cascades without retaining private orphan profiles',async()=>{
       await as('postgres');await query('delete from auth.users where id=$1',[alice]);

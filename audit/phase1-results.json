@@ -3,7 +3,7 @@
   "status": "Implementation for review; live setup incomplete",
   "checks": {
     "clean_npm_ci": "passed",
-    "node_and_postgres_tests": 19,
+    "node_and_postgres_tests": 20,
     "configured_auth_browser_checks": 31,
     "unconfigured_auth_browser_checks": 6,
     "guest_regression_checks": 26,
@@ -13,13 +13,14 @@
   },
   "tested_backend": "PGlite PostgreSQL with minimal Supabase Auth schema; mocked Supabase HTTP with real SDK in Chrome",
   "unverified": [
-    "Hosted Supabase migration and RLS",
     "Live Google consent and OAuth",
     "Email signup verification delivery",
     "Live password-reset email delivery",
     "Public SMTP sender availability within INR 0",
-    "Physical devices and Safari"
+    "Physical devices and Safari",
+    "Live Auth/PostgREST JWT end-to-end"
   ],
   "production_configuration_changed": false,
-  "phase2_started": false
+  "phase2_started": false,
+  "hosted_database": "Migrations applied; rollback-only role/RLS checks passed; zero Security Advisor errors/warnings"
 }

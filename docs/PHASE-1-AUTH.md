@@ -34,7 +34,7 @@ Supabase Dashboardમાં Free organizationમાં `filemate-dev` નામ�
 
 ### 2. Migration
 
-યોગ્ય development projectમાં SQL Editor ખોલો. `supabase/migrations/202610310001_profiles.sql`નું content review કરીને Run કરો. Existing profiles table હોય તો પહેલાં અટકો અને schema તપાસાવો. આ migration હજી કોઈ hosted project પર apply થયેલું નથી.
+યોગ્ય development projectમાં SQL Editor ખોલો. `supabase/migrations/202610310001_profiles.sql`નું content review કરીને Run કરો. Existing profiles table હોય તો પહેલાં અટકો અને schema તપાસાવો. આ development projectમાં migration હવે apply અને verify થઈ ગયું છે; ફરી Run ન કરો.
 
 ### 3. Browser public config
 
@@ -85,13 +85,13 @@ Node.js 22 or newer is required by the added Supabase SDK. The current local run
 
 Install Playwright for browser tests with `npm.cmd install --no-save --package-lock=false playwright@1.62.1` and Chrome installed. In this workspace the bundled Playwright is supplied via PLAYWRIGHT_MODULE. Test reports use synthetic users only. Existing Vite/esbuild development advisories and large-chunk warnings are inherited; no unrelated major upgrades are included.
 
-Live signup/email confirmation, live Google OAuth, email delivery, hosted RLS, real-device/Safari testing, and public email sender readiness remain **unverified** until the owner completes setup and tests. Do not label Phase 1 production-ready or proceed to Phase 2 yet.
+Live signup/email confirmation, live Google OAuth, email delivery, live Auth/PostgREST JWT end-to-end, real-device/Safari testing, and public email sender readiness remain **unverified** until the owner completes setup and tests. Do not label Phase 1 production-ready or proceed to Phase 2 yet.
 
 Sources: [Supabase PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow), [Auth user data](https://supabase.com/docs/guides/auth/managing-user-data), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Google setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [SMTP restrictions](https://supabase.com/docs/guides/auth/auth-smtp), [Free plan](https://supabase.com/pricing).
 
 ## Current verification result
 
-Clean npm ci passed. Node/PostgreSQL tests: **19 passed**. Configured auth browser checks: **31 passed**. Unconfigured/mobile/guest-navigation checks: **6 passed**. Existing guest-tool regression checks: **26 passed**. Production build and 36-module TypeScript compilation passed. Production dependency audit found zero known advisories. Large main/Three.js chunk warnings remain. See audit/phase1-results.json and the browser/regression reports.
+Clean npm ci passed. Node/PostgreSQL tests: **20 passed**. Configured auth browser checks: **31 passed**. Unconfigured/mobile/guest-navigation checks: **6 passed**. Existing guest-tool regression checks: **26 passed**. Production build and 36-module TypeScript compilation passed. Production dependency audit found zero known advisories. Large main/Three.js chunk warnings remain. See audit/phase1-results.json and the browser/regression reports.
 
 ## Changed files
 
@@ -102,3 +102,15 @@ Clean npm ci passed. Node/PostgreSQL tests: **19 passed**. Configured auth brows
 - tests/auth/{validation.test.mjs,database.test.mjs,browser.cjs,unconfigured.cjs}: unit, database and UI tests.
 - tests/check-modules.cjs and tests/zip-update.cjs: ESM-aware compile check and font-independent browser loading.
 - audit/phase1-*: synthetic screenshots and actual verification reports.
+
+## Hosted database follow-up
+
+The owner created and authorized access to project `posrfyituwkvooocoxqg` in the Free organization. Both SQL migrations were applied through Dashboard SQL Editor. The follow-up `20261031115031_private_username_lookup.sql` retains exact username-only lookup but makes the public API function SECURITY INVOKER, moving the tightly scoped privileged helper into `filemate_private`. Do not add `filemate_private` to the Data API exposed schemas. Private profile table grants and RLS remain unchanged.
+
+Hosted role/claim tests passed, including own-row visibility, rejected cross-user updates, denied identity changes, duplicate/reserved username rejection and public username-only lookup. All synthetic changes were rolled back; Auth users and profiles both returned to 0. Security Advisor showed 0 errors and 0 warnings after this change. See `audit/phase1-hosted-database.json` and screenshots. This does not establish live Google OAuth, SMTP delivery, or live JWT/API behavior.
+
+These were manual SQL applications: the Dashboard/CLI migration-history table was not automatically updated. Do not rerun these CREATE migrations or blindly run db push against this project. Before adopting CLI deployments, reconcile the already-applied migration history using the CLI documented repair workflow. The exact tested SQL files are committed in Git.
+
+The project URL and publishable key were copied from the owner-authorized Dashboard into an ignored `.env.local` using exclusive creation (no existing env file was overwritten). No service-role/secret key was copied. Live public-key checks passed: username RPC returns an empty result for a nonexistent name, anonymous private-profile SELECT is denied, and requests to the private helper schema are rejected as an unexposed schema. Google provider is currently disabled; email provider is enabled, but delivery and real-user JWT flows remain unverified. No Cloudflare Preview/Production variables have been changed yet.
+
+Optional live verification scripts (not part of the offline npm test suite): `node tests/auth/live-public-api.cjs` uses only the publishable key in ignored .env.local to make read-only HTTP checks; `tests/auth/hosted-profile-verification.sql` runs synthetic role/claim checks in a rollback-only Dashboard transaction. Do not run the hosted SQL outside the intended development project.
