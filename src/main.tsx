@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 import App from './App.jsx';
+import { AuthProvider } from './auth/AuthProvider.jsx';
 import { applyPalette, loadPalette } from './palette.js';
 import './index.css';
 
@@ -9,6 +10,6 @@ applyPalette(loadPalette());
 
 createRoot(document.getElementById('root')!).render(
   <MotionConfig reducedMotion="user">
-    <App />
+    <AuthProvider><App /></AuthProvider>
   </MotionConfig>
 );
