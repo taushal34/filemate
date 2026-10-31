@@ -1,5 +1,5 @@
 {
-  "checks": 33,
+  "checks": 34,
   "passed": [
     "Guest cannot view account profile",
     "Invalid login has useful error",
@@ -24,6 +24,7 @@
     "Resend verification flow reaches Auth",
     "Password reset uses non-enumerating success message",
     "Guest cannot use reset-password form",
+    "Recovery without custom query flag stays on password form",
     "PKCE recovery callback exchanges code",
     "Callback code removed from URL",
     "Recovery updates password through Auth and signs out",

@@ -73,8 +73,12 @@ export function AuthProvider({ children, api = defaultApi, config = authConfig }
           return;
         }
         try {
-          await api.exchange(code);
-          if (!disposed) navigate(recovery ? '/auth/reset-password' : '/account', true);
+          const exchanged = await api.exchange(code);
+          // The SDK preserves recovery intent with the PKCE verifier. Email providers
+          // may omit the custom query parameter; do not overwrite PASSWORD_RECOVERY
+          // navigation with the ordinary account redirect after exchanging the code.
+          const isRecovery = recovery || exchanged?.redirectType === 'recovery';
+          if (!disposed) navigate(isRecovery ? '/auth/reset-password' : '/account', true);
         } catch {
           if (!disposed) { setError('This link could not be verified. Request a new link and open it in the same browser.'); setStatus('guest'); navigate('/auth/login', true); }
           return;
