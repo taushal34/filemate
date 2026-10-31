@@ -1,3 +1,5 @@
+> Historical audit for commit `d0fb47e`. The later user-supplied ZIP replaces this application version. See [ZIP-UPDATE.md](ZIP-UPDATE.md) for current validation and limitations. The 97-check report below applies to the earlier version only.
+
 # FileMate audit and repairs
 
 ## Source of truth and deployment

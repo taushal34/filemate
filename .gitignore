@@ -7,3 +7,4 @@ dist/
 audit/*.zip
 audit/*.patch
 audit/samples/
+audit/incoming-update/

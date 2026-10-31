@@ -1,27 +1,177 @@
-import {useState,useRef,useEffect} from 'react'
-import {Palette,X} from 'lucide-react'
-import {PRESETS,DEFAULT,loadPalette,savePalette} from './palette'
-const FIELDS=[['dark','Dark background'],['light','Light background'],['acc','Main accent'],['glow','Glow']]
-export default function PalettePanel({onChange}){
- const [open,setOpen]=useState(false),[p,setP]=useState(loadPalette),root=useRef(),trigger=useRef(),panel=useRef()
- const dismiss=()=>{setOpen(false);trigger.current?.focus()}
- useEffect(()=>{
-  if(!open)return
-  panel.current?.querySelector('button')?.focus()
-  const outside=e=>{if(!root.current?.contains(e.target))setOpen(false)}
-  const key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();dismiss()}}
-  const focus=e=>{if(!root.current?.contains(e.target))setOpen(false)}
-  document.addEventListener('pointerdown',outside)
-  document.addEventListener('keydown',key)
-  document.addEventListener('focusin',focus)
-  return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);document.removeEventListener('focusin',focus)}
- },[open])
- const set=n=>{setP(n);savePalette(n);onChange?.()}
- return <div ref={root} className="relative"><button ref={trigger} aria-expanded={open} aria-controls="palette-panel" aria-haspopup="dialog" aria-label="Change colors" onClick={()=>setOpen(v=>!v)} className="grid h-10 w-10 place-items-center rounded-full border border-line hover:bg-pink hover:text-ink"><Palette size={18}/></button>
- {open&&<div id="palette-panel" ref={panel} role="dialog" aria-label="Color palette" className="palette-panel absolute right-0 top-12 z-50 w-72 overflow-y-auto rounded-2xl border border-line bg-bg p-4 shadow-xl">
-  <div className="flex items-center justify-between"><p className="font-display font-bold">Presets</p><button onClick={dismiss} aria-label="Close color palette" className="grid h-10 w-10 place-items-center rounded-full border border-line"><X size={18}/></button></div>
-  <div className="mt-2 grid gap-2">{Object.entries(PRESETS).map(([n,v])=><button key={n} aria-pressed={FIELDS.every(([k])=>p[k]===v[k])} onClick={()=>set(v)} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm hover:border-fg">{n}<span className="flex" aria-hidden>{[v.dark,v.acc,v.glow,v.light].map((c,i)=><i key={i} className="h-4 w-4" style={{background:c}}/>)}</span></button>)}</div>
-  <p className="mt-4 font-display font-bold">Your own colors</p>
-  <div className="mt-2 grid grid-cols-2 gap-3">{FIELDS.map(([k,l])=><label key={k} className="text-xs text-mute">{l}<input type="color" value={p[k]} onChange={e=>set({...p,[k]:e.target.value})} className="mt-1 block h-9 w-full cursor-pointer rounded bg-transparent"/></label>)}</div>
-  <button onClick={()=>set(DEFAULT)} className="mt-4 min-h-10 text-sm text-accent underline">Reset to default</button></div>}</div>
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Palette, X } from 'lucide-react';
+import { PRESETS, DEFAULT, loadPalette, savePalette } from './palette';
+
+const FIELDS = [
+  ['dark', 'Dark background'],
+  ['light', 'Light background'],
+  ['acc', 'Main accent'],
+  ['glow', 'Glow'],
+];
+
+export default function PalettePanel({ onChange }) {
+  const [open, setOpen] = useState(false);
+  const [currentPalette, setCurrentPalette] = useState(loadPalette);
+  const panelRef = useRef(null);
+  const triggerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+
+  // Apply and persist palette
+  const handleSelectPalette = useCallback(
+    newPalette => {
+      setCurrentPalette(newPalette);
+      savePalette(newPalette);
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        onChange?.();
+      }, 80);
+    },
+    [onChange]
+  );
+
+  // Robust outside-click and Escape key detection using React refs
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDownOutside = event => {
+      const isInsidePanel = panelRef.current && panelRef.current.contains(event.target);
+      const isInsideTrigger = triggerRef.current && triggerRef.current.contains(event.target);
+
+      if (!isInsidePanel && !isInsideTrigger) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  const togglePanel = () => {
+    setOpen(prev => !prev);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label="Change colors"
+        onClick={togglePanel}
+        className="grid h-10 w-10 place-items-center rounded-full border border-line hover:bg-pink hover:text-ink text-fg transition-colors cursor-pointer"
+      >
+        <Palette size={18} />
+      </button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="false"
+          aria-label="Theme & Color Settings"
+          className="absolute right-0 top-12 z-50 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-line bg-bg p-4 shadow-2xl transition-all"
+        >
+          {/* Header with Title and Explicit Close Button */}
+          <div className="flex items-center justify-between pb-2 border-b border-line mb-3">
+            <span className="font-display font-bold text-sm text-fg">Theme & Colors</span>
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Close theme panel"
+              className="grid h-7 w-7 place-items-center rounded-full text-mute hover:text-fg hover:bg-pink hover:text-ink transition-colors cursor-pointer"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* Curated Presets */}
+          <p className="font-display text-xs font-semibold uppercase tracking-wider text-mute mb-2">
+            Curated Presets
+          </p>
+          <div className="grid gap-2">
+            {Object.entries(PRESETS).map(([name, val]) => {
+              const isSelected =
+                currentPalette.dark === val.dark &&
+                currentPalette.light === val.light &&
+                currentPalette.acc === val.acc &&
+                currentPalette.glow === val.glow;
+
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => handleSelectPalette(val)}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors cursor-pointer text-left ${
+                    isSelected
+                      ? 'border-accent bg-pink/20 font-medium text-fg shadow-xs'
+                      : 'border-line text-fg hover:border-fg'
+                  }`}
+                >
+                  <span className="truncate">{name}</span>
+                  <span className="flex rounded overflow-hidden border border-line shrink-0 ml-2 shadow-xs">
+                    {[val.dark, val.acc, val.glow, val.light].map((c, i) => (
+                      <i key={i} className="h-3.5 w-3.5" style={{ background: c }} />
+                    ))}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Colors */}
+          <p className="mt-4 font-display text-xs font-semibold uppercase tracking-wider text-mute mb-2">
+            Fine-tune Colors
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {FIELDS.map(([k, label]) => (
+              <label key={k} className="text-[11px] text-mute block">
+                <span className="truncate block">{label}</span>
+                <div className="mt-1 flex items-center gap-1.5 rounded-lg border border-line bg-card p-1">
+                  <input
+                    type="color"
+                    value={currentPalette[k]}
+                    onChange={e => handleSelectPalette({ ...currentPalette, [k]: e.target.value })}
+                    className="h-6 w-7 cursor-pointer rounded border-0 bg-transparent p-0 block"
+                  />
+                  <span className="font-mono text-[10px] text-fg uppercase truncate">
+                    {currentPalette[k]}
+                  </span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Footer Reset & Status */}
+          <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => handleSelectPalette(DEFAULT)}
+              className="text-xs text-accent hover:underline cursor-pointer font-medium"
+            >
+              Reset to Graphite & Lime
+            </button>
+            <span className="text-[10px] text-mute">Applied live</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

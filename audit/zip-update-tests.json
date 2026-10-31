@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-29T19:59:26.000Z",
+  "checks": 26,
+  "passed": [
+    "No document overflow 320",
+    "Canvas present 320",
+    "No document overflow 375",
+    "Canvas present 375",
+    "No document overflow 390",
+    "Canvas present 390",
+    "No document overflow 430",
+    "Canvas present 430",
+    "No document overflow 768",
+    "Canvas present 768",
+    "No document overflow 1440",
+    "Canvas present 1440",
+    "Theme panel stays open",
+    "Escape closes palette",
+    "Theme persists",
+    "PDF output merge",
+    "PDF output split",
+    "PDF output jpg2pdf",
+    "Image output compress",
+    "Image output resize",
+    "Image output convert",
+    "Word counter",
+    "Text case",
+    "All supplied component modules import",
+    "Backdrop leaves workspace open",
+    "No runtime errors"
+  ],
+  "errors": []
+}
