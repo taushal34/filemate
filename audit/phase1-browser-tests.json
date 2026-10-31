@@ -2,7 +2,7 @@
   "checks": 42,
   "passed": [
     "Guest cannot view account profile",
-    "Invalid login has useful error",
+    "Invalid login explains missing user or incorrect password",
     "Email login loads private profile",
     "New user sees username onboarding",
     "Duplicate username error is safely shown",

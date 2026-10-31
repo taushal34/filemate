@@ -27,6 +27,7 @@ test('password length policy and safe errors', () => {
   assert.ok(passwordError('a'.repeat(129)));
   assert.match(authError({ code:'23505', message:'secret database details' }), /already taken/);
   assert.doesNotMatch(authError({ message:'token=private' }), /private/);
+  assert.equal(authError({code:'invalid_credentials'}), "User doesn't exist, or the password is incorrect.");
 });
 function fake() {
   const calls=[]; const auth=new Proxy({}, { get:(_,method)=>async (...args)=>{calls.push([method,...args]);return {data:{session:null},error:null};} });

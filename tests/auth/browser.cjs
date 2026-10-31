@@ -43,7 +43,7 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     check('Guest cannot view account profile',await page.locator('#profile-username').count()===0);
     await page.getByRole('link',{name:'Sign in',exact:true}).last().click();
     await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByLabel('Password',{exact:true}).fill('long-test-password');
-    rejectLogin=true;await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('alert').filter({hasText:'Email or password'}).waitFor();check('Invalid login has useful error',true);rejectLogin=false;
+    rejectLogin=true;await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByRole('alert').filter({hasText:"User doesn't exist, or the password is incorrect."}).waitFor();check('Invalid login explains missing user or incorrect password',true);rejectLogin=false;
     await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.locator('#profile-username').waitFor();
     check('Email login loads private profile',await page.getByText('Signed in as alice@example.com').isVisible());
     check('New user sees username onboarding',await page.getByText('Choose your unique FileMate username',{exact:false}).isVisible());

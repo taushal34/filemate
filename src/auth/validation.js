@@ -32,7 +32,7 @@ export function authError(error) {
   if (error?.code === '23505') return 'That username is already taken. Please choose another one.';
   if (error?.code === 'email_not_confirmed') return 'Verify your email before signing in. Open the verification link in this same browser.';
   if (error?.status === 429 || error?.code === 'over_email_send_rate_limit') return 'Too many attempts. Please wait before trying again.';
-  if (error?.code === 'invalid_credentials') return 'Email or password is incorrect.';
+  if (error?.code === 'invalid_credentials') return "User doesn't exist, or the password is incorrect.";
   if (error?.code === 'email_address_not_authorized') return 'Email delivery is not available for this address. Please contact the site owner.';
   if (error?.code === '23514' || error?.code === '22023') return 'Check your username and display name, then try again.';
   if (error?.code === 'PGRST116') return 'Your profile is not available yet. Please retry or contact the site owner.';
