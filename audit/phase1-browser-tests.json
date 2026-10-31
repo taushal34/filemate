@@ -1,5 +1,5 @@
 {
-  "checks": 31,
+  "checks": 33,
   "passed": [
     "Guest cannot view account profile",
     "Invalid login has useful error",
@@ -15,6 +15,8 @@
     "Account fits 430",
     "Account fits 768",
     "Account fits 1440",
+    "Signed-in users can request password recovery",
+    "Signed-in recovery request reaches Auth",
     "Logout returns to login",
     "Protected account stays protected after logout",
     "Unconfirmed signup asks for verification, not a fake signed-in state",

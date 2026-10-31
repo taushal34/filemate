@@ -53,6 +53,11 @@ let chromium;try{({chromium}=require('playwright'))}catch{({chromium}=require(pr
     await page.reload();await page.getByText('Signed in as alice@example.com').waitFor();check('Session persists across refresh',await page.getByLabel('FileMate username',{exact:true}).inputValue()==='alice');
     for(const width of [320,375,390,430,768,1440]){await page.setViewportSize({width,height:850});check('Account fits '+width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
     await page.screenshot({path:'audit/phase1-account.png'});
+    await page.getByRole('link',{name:'Reset password by email'}).click();
+    check('Signed-in users can request password recovery',await page.getByLabel('Email',{exact:true}).inputValue()==='alice@example.com');
+    await page.getByRole('button',{name:'Send reset link'}).click();await page.getByRole('status').filter({hasText:'If this address'}).waitFor();
+    check('Signed-in recovery request reaches Auth',requests.some(r=>r.path.endsWith('/recover')));
+    await page.goto(base+'/account',{waitUntil:'domcontentloaded'});await page.getByText('Signed in as alice@example.com').waitFor();
     await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.getByRole('heading',{name:'Welcome back.'}).waitFor();check('Logout returns to login',new URL(page.url()).pathname==='/auth/login');
     await page.goto(base+'/account',{waitUntil:'domcontentloaded'});await page.getByText('Sign in to view your private account.',{exact:false}).waitFor();check('Protected account stays protected after logout',await page.locator('#profile-username').count()===0);
     await page.goto(base+'/auth/signup',{waitUntil:'domcontentloaded'});await page.getByLabel('Email',{exact:true}).fill('alice@example.com');await page.getByLabel('Preferred FileMate username').fill('alice');await page.getByLabel('Password',{exact:true}).fill('long-test-password');
