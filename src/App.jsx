@@ -994,6 +994,7 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 text-sm text-mute">
           <Mark />
           <p>Free and open source. Made to run on your device.</p>
+          <a href="/privacy.html" className="min-h-10 inline-flex items-center underline hover:text-fg">Privacy policy</a>
         </div>
       </footer>
 
