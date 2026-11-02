@@ -20,6 +20,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import PalettePanel from './PalettePanel';
+import SaveToDrive, { isDriveUploading } from './drive/SaveToDrive';
 import AuthScreen, { AccountNav } from './auth/AuthScreen';
 import { AUTH_PATHS, useRoute, navigate } from './auth/navigation';
 import { TOOLS, CATS, stats, CASES, fmt, validate } from './tools';
@@ -617,6 +618,7 @@ function Workspace({ tool, pre, close }) {
 
   // Safe close confirmation to prevent accidental loss of work
   const handleSafeClose = useCallback(() => {
+    if (isDriveUploading() && !window.confirm('A Google Drive upload is running. Close and cancel it? It may already have saved in Drive.')) return;
     if (st.busy) {
       if (!window.confirm('A file operation is currently running. Discard and cancel?')) {
         return;
@@ -823,7 +825,7 @@ function Workspace({ tool, pre, close }) {
                   </div>
                   <ul className="mt-3 divide-y divide-line">
                     {st.res.map((r, i) => (
-                      <li key={i} className="flex items-center justify-between gap-3 py-3 text-sm">
+                      <li key={i} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                         <span className="truncate text-xs font-mono font-medium text-fg">
                           {r.name} <span className="text-mute">({fmt(r.blob.size)})</span>
                         </span>
@@ -835,6 +837,7 @@ function Workspace({ tool, pre, close }) {
                           <Download size={14} />
                           <span>Download</span>
                         </a>
+                        <SaveToDrive output={r} />
                       </li>
                     ))}
                   </ul>

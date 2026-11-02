@@ -3,6 +3,7 @@ import { supabase, authConfig } from './client';
 import { createAuthApi } from './api';
 import { authError } from './validation';
 import { navigate } from './navigation';
+import { disconnectDrive } from '../drive/client';
 
 const AuthContext = createContext(null);
 const defaultApi = supabase ? createAuthApi(supabase, window.location.origin) : null;
@@ -32,6 +33,7 @@ export function AuthProvider({ children, api = defaultApi, config = authConfig }
     const subscription = api.subscribe((event, session) => {
       if (disposed) return;
       if (event === 'SIGNED_OUT') {
+        disconnectDrive();
         generation.current++; activeUser.current = null; lastToken.current = null;
         setUser(null); setProfile(null); setProfileError(''); setProfileLoading(false); setStatus('guest');
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
