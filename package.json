@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/auth/*.test.mjs",
+    "test": "node --test tests/auth/*.test.mjs tests/drive.test.mjs",
+    "test:drive": "node tests/drive-browser.cjs",
     "test:browser": "node tests/auth/browser.cjs && node tests/auth/unconfigured.cjs",
     "test:regression": "node tests/audit.cjs"
   },
