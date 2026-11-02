@@ -55,8 +55,16 @@ production variables confirmed that production still has only its existing two
 Supabase settings. Subsequent preview builds pick up the new public ID.
 
 The local real-PDF processing test displayed the new action and loaded GIS.
-The in-app browser did not surface Google's popup; cancellation returned the UI
-to its usable state. Real consent and uploads are therefore still unverified.
+An initial localhost popup did not surface; cancellation returned the UI to a usable
+state. On the configured hosted preview, the Google connection subsequently
+completed and showed the selected account. An explicit Save click uploaded the
+processed synthetic PDF successfully. Open in Drive displayed the correct filename,
+one page, the expected non-personal test text, and “Private to only me” sharing.
+This verifies real token/API authorization, browser-readable upload Location,
+authenticated PUT, output rendering and private creation for that small PDF.
+It does not verify all accounts, browsers, large uploads, revocation or storage-full
+cases. PNG/JPEG/WebP real Drive uploads remain untested; local image processing and
+mocked output validation passed. No private user documents were used for this test.
 
 Validation: production build passed (existing large bundle warning), 28 Node tests,
 45 auth browser checks, 6 unconfigured account browser checks, 26 guest/tool checks
@@ -64,9 +72,8 @@ and 8 mocked Drive browser checks passed. Mocked checks are not live service tes
 GitHub draft PR: https://github.com/taushal34/filemate/pull/4 . The initial feature
 commit also passed the Cloudflare Pages preview deployment check. No merge.
 
-No authenticated real Drive upload has been verified yet. An unauthenticated
-OPTIONS probe succeeded, but that does not verify browser-readable Location or
-authenticated PUT behavior. Confirm those on localhost and preview before release.
+Authenticated upload CORS was verified on the hosted preview for a small PDF.
+Large upload behavior, status probes and real interrupted sessions remain untested.
 Network retry starts a new resumable session with the same file ID; it does not
 resume partial bytes. A refresh loses the token, Blob and retry identity. Browser
 closure warns during pending work; closing the workspace cancels its upload.
