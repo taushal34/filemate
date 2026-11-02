@@ -49,12 +49,20 @@ Origins: `http://localhost`, `http://localhost:5173`, and
 `https://feat-phase-2-google-drive.filemate-52q.pages.dev`.
 Existing Supabase OAuth client and production hosting were not changed. Billing
 was not activated. The public client ID was appended to ignored local configuration
-without replacing existing settings. Preview hosting still needs the public
-`VITE_GOOGLE_DRIVE_CLIENT_ID` setting before a usable hosted Drive test.
+without replacing existing settings. The public `VITE_GOOGLE_DRIVE_CLIENT_ID`
+setting was also saved for Cloudflare Pages previews only. A separate read of
+production variables confirmed that production still has only its existing two
+Supabase settings. Subsequent preview builds pick up the new public ID.
 
 The local real-PDF processing test displayed the new action and loaded GIS.
 The in-app browser did not surface Google's popup; cancellation returned the UI
 to its usable state. Real consent and uploads are therefore still unverified.
+
+Validation: production build passed (existing large bundle warning), 28 Node tests,
+45 auth browser checks, 6 unconfigured account browser checks, 26 guest/tool checks
+and 8 mocked Drive browser checks passed. Mocked checks are not live service tests.
+GitHub draft PR: https://github.com/taushal34/filemate/pull/4 . The initial feature
+commit also passed the Cloudflare Pages preview deployment check. No merge.
 
 No authenticated real Drive upload has been verified yet. An unauthenticated
 OPTIONS probe succeeded, but that does not verify browser-readable Location or
