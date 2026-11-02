@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-31",
+  "testedSourceCommit": "398ad791ccfdb49de36ffbec76e79436fb54a6a7",
+  "checks": {
+    "unitAndPostgres": 21,
+    "configuredAuthBrowser": 42,
+    "unconfiguredBrowser": 6,
+    "guestToolsRegression": 26,
+    "total": 95
+  },
+  "productionBuild": "passed",
+  "typescriptModulesCompiled": 36,
+  "productionDependencyAdvisories": 0,
+  "trackedSecretPatternHits": 0,
+  "fileDeletions": 0,
+  "cloudflarePreview": "success",
+  "liveReadOnlyApi": "passed",
+  "liveEvidence": [
+    "Google login, logout and re-login previously verified",
+    "Account/session loaded in a fresh preview tab during final review",
+    "Brevo reset delivery verified; owner confirmed OTP/password reset success"
+  ],
+  "limitations": [
+    "Browser auth tests use mocked HTTP responses with the real SDK",
+    "Mobile/WebGL checks use desktop Chrome viewport emulation and SwiftShader, not physical phones",
+    "New email/password signup confirmation has not been separately completed live",
+    "Google OAuth remains External/Testing; only configured testers may sign in",
+    "Production Pages env and auth callback configuration still require approved release setup",
+    "Existing large-bundle warning and inherited development dependency advisories remain"
+  ],
+  "releaseState": "PR #3 draft and unmerged; production unchanged"
+}

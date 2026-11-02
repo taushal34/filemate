@@ -1,0 +1,10 @@
+{
+  "public_username_rpc": "passed",
+  "anonymous_private_profiles_denied": "passed",
+  "helper_schema_not_exposed": "passed",
+  "auth_settings_status": 200,
+  "google_enabled": true,
+  "email_enabled": true,
+  "signup_disabled": false,
+  "credentials": "publishable key only, loaded from ignored .env.local; not included in this report"
+}

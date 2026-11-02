@@ -8,3 +8,6 @@ audit/*.zip
 audit/*.patch
 audit/samples/
 audit/incoming-update/
+
+# Local Supabase CLI cache (never project credentials)
+supabase/.temp/

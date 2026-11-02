@@ -1,0 +1,43 @@
+{
+  "project_ref": "posrfyituwkvooocoxqg",
+  "scope": "New Supabase project in filemate-dev Free organization; not the production website",
+  "applied_via": "Dashboard SQL Editor; no CLI migration-history entries created",
+  "migrations": [
+    "202610310001_profiles.sql",
+    "20261031115031_private_username_lookup.sql"
+  ],
+  "preflight": {
+    "auth_users": 0,
+    "public_tables": 0,
+    "profiles_table": null
+  },
+  "verified": {
+    "rls_enabled": true,
+    "owner_select_and_update": true,
+    "cross_user_update_denied": true,
+    "identity_column_update_denied": true,
+    "anonymous_private_select_denied": true,
+    "duplicate_username_denied": true,
+    "reserved_username_denied": true,
+    "exact_public_username_lookup": true,
+    "remaining_auth_users": 0,
+    "remaining_profiles": 0,
+    "security_advisor_errors": 0,
+    "security_advisor_warnings": 0
+  },
+  "method": "PostgreSQL role/claim tests inside rollback-only transactions on the hosted database; not live Auth/JWT/PostgREST end-to-end testing",
+  "unverified": [
+    "Live Google OAuth",
+    "Live email signup and verification delivery",
+    "Live password reset delivery",
+    "Authenticated Auth/PostgREST JWT end-to-end and preview environment configuration"
+  ],
+  "production_website_modified": false,
+  "public_api": {
+    "username_rpc": "passed",
+    "anonymous_private_profiles": "denied",
+    "private_helper_schema": "not_exposed",
+    "google_provider_enabled": false,
+    "email_provider_enabled": true
+  }
+}
